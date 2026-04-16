@@ -1,0 +1,10 @@
+D:\Personal Notes Manager\src\main\java\com\notemanager\config\SecurityConfig.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\controller\AuthController.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\controller\NoteController.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\model\Note.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\model\User.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\NotesManagerApplication.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\repository\NoteRepository.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\repository\UserRepository.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\service\NoteService.java
+D:\Personal Notes Manager\src\main\java\com\notemanager\service\UserService.java

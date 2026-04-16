@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Personal Notes Manager</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Login</h1>
+        <p style="margin-bottom: 1rem; color: #666;">Enter your username and password to open your notes.</p>
+
+        <div id="message" style="display: none; margin-bottom: 1rem; padding: 0.75rem; border-radius: 5px;"></div>
+
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+
+        <p style="margin-top: 1rem;">
+            <a href="/register.html" style="color: #667eea;">No account? Register</a>
+        </p>
+    </div>
+
+    <script>
+        if (localStorage.getItem('user')) {
+            window.location.href = '/dashboard.html';
+        }
+
+        const loginForm = document.getElementById('loginForm');
+        const messageBox = document.getElementById('message');
+
+        function showMessage(message, isError) {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            messageBox.style.backgroundColor = isError ? '#fed7d7' : '#c6f6d5';
+            messageBox.style.color = isError ? '#c53030' : '#22543d';
+        }
+
+        loginForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const credentials = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(credentials)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    localStorage.setItem('user', result.username);
+                    window.location.href = '/dashboard.html';
+                    return;
+                }
+
+                showMessage(result.message || 'Login failed.', true);
+            } catch (error) {
+                showMessage('Unable to connect to the server.', true);
+            }
+        });
+    </script>
+</body>
+</html>

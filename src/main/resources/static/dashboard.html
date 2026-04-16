@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Personal Notes Manager</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container" style="max-width: 800px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <h1>My Notes</h1>
+                <p id="welcomeText" style="color: #666;"></p>
+            </div>
+            <button type="button" onclick="logout()" style="background: #e53e3e; width: auto;">Logout</button>
+        </div>
+
+        <div id="message" style="display: none; margin-bottom: 1rem; padding: 0.75rem; border-radius: 5px;"></div>
+
+        <form id="noteForm">
+            <h3 id="formTitle" style="margin-bottom: 1rem; color: #333;">Add New Note</h3>
+            <input type="hidden" id="noteId">
+            <input type="text" id="noteTitle" placeholder="Title" required>
+            <textarea id="noteContent" placeholder="Content" rows="4" required></textarea>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit">Save Note</button>
+                <button type="button" onclick="resetForm()" style="background: #718096;">Clear</button>
+            </div>
+        </form>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 1.5rem 0 0.5rem;">
+            <h2 style="color: #333;">Your Notes</h2>
+            <button type="button" onclick="loadNotes()" style="background: #48bb78; width: auto;">Refresh</button>
+        </div>
+
+        <div id="notesList" class="notes-list">
+            <p>Loading notes...</p>
+        </div>
+    </div>
+
+    <script>
+        const currentUser = localStorage.getItem('user');
+        const noteForm = document.getElementById('noteForm');
+        const noteIdInput = document.getElementById('noteId');
+        const noteTitleInput = document.getElementById('noteTitle');
+        const noteContentInput = document.getElementById('noteContent');
+        const formTitle = document.getElementById('formTitle');
+        const notesList = document.getElementById('notesList');
+        const messageBox = document.getElementById('message');
+        const welcomeText = document.getElementById('welcomeText');
+        let notesData = [];
+
+        if (!currentUser) {
+            window.location.href = '/login.html';
+        } else {
+            welcomeText.textContent = 'Logged in as: ' + currentUser;
+            noteForm.addEventListener('submit', saveNote);
+            loadNotes();
+        }
+
+        function showMessage(message, isError) {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            messageBox.style.backgroundColor = isError ? '#fed7d7' : '#c6f6d5';
+            messageBox.style.color = isError ? '#c53030' : '#22543d';
+        }
+
+        function buildNotesUrl(id) {
+            const notePath = id ? '/' + id : '';
+            return '/api/notes' + notePath + '?username=' + encodeURIComponent(currentUser);
+        }
+
+        async function loadNotes() {
+            try {
+                const response = await fetch(buildNotesUrl());
+                const result = await response.json();
+
+                if (response.ok) {
+                    notesData = result;
+                    displayNotes();
+                } else {
+                    handleSessionError(result.message || 'Please login again.');
+                }
+            } catch (error) {
+                showMessage('Unable to load notes.', true);
+            }
+        }
+
+        function displayNotes() {
+            if (notesData.length === 0) {
+                notesList.innerHTML = '<p>No notes yet. Create your first note.</p>';
+                return;
+            }
+
+            notesList.innerHTML = notesData.map(function (note) {
+                return `
+                    <div class="note">
+                        <h3>${escapeHtml(note.title)}</h3>
+                        <p>${escapeHtml(note.content).replace(/\n/g, '<br>')}</p>
+                        <p style="font-size: 0.8rem; color: #999; margin-top: 0.5rem;">Created: ${formatDate(note.createdAt)}</p>
+                        <div class="btn-group">
+                            <button type="button" class="btn-small" onclick="editNote(${note.id})">Edit</button>
+                            <button type="button" class="btn-small btn-danger" onclick="deleteNote(${note.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editNote(id) {
+            const note = notesData.find(function (item) {
+                return item.id === id;
+            });
+
+            if (!note) {
+                showMessage('Note not found.', true);
+                return;
+            }
+
+            noteIdInput.value = note.id;
+            noteTitleInput.value = note.title;
+            noteContentInput.value = note.content;
+            formTitle.textContent = 'Edit Note';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            noteForm.reset();
+            noteIdInput.value = '';
+            formTitle.textContent = 'Add New Note';
+        }
+
+        async function saveNote(event) {
+            event.preventDefault();
+
+            const id = noteIdInput.value;
+            const note = {
+                title: noteTitleInput.value.trim(),
+                content: noteContentInput.value.trim()
+            };
+
+            try {
+                const response = await fetch(buildNotesUrl(id), {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(note)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(id ? 'Note updated successfully.' : 'Note created successfully.', false);
+                    resetForm();
+                    await loadNotes();
+                } else {
+                    handleSessionError(result.message || 'Unable to save note.');
+                }
+            } catch (error) {
+                showMessage('Unable to save note.', true);
+            }
+        }
+
+        async function deleteNote(id) {
+            if (!confirm('Delete this note?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(buildNotesUrl(id), {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage('Note deleted successfully.', false);
+                    if (Number(noteIdInput.value) === id) {
+                        resetForm();
+                    }
+                    await loadNotes();
+                } else {
+                    handleSessionError(result.message || 'Unable to delete note.');
+                }
+            } catch (error) {
+                showMessage('Unable to delete note.', true);
+            }
+        }
+
+        function handleSessionError(message) {
+            if (message === 'User not found') {
+                localStorage.removeItem('user');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            showMessage(message, true);
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return 'Unknown';
+            }
+
+            return new Date(value).toLocaleString();
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>

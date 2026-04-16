@@ -1,0 +1,10 @@
+com\notemanager\controller\NoteController.class
+com\notemanager\model\Note.class
+com\notemanager\model\User.class
+com\notemanager\repository\UserRepository.class
+com\notemanager\service\UserService.class
+com\notemanager\service\NoteService.class
+com\notemanager\controller\AuthController.class
+com\notemanager\repository\NoteRepository.class
+com\notemanager\NotesManagerApplication.class
+com\notemanager\config\SecurityConfig.class
